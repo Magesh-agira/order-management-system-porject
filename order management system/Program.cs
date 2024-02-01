@@ -150,8 +150,9 @@ namespace order_management_system
             foreach (var order in orders)
             {
                 Console.WriteLine($"Order ID: {order.OrderId}, Total Amount: {order.TotalAmount:C}");
-                DisplayOrderItems(order.OrderItems);
                 Console.WriteLine(new string('-', 30));
+                DisplayOrderItems(order.OrderItems);
+                
             }
         }
 
