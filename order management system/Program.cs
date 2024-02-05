@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -188,8 +189,9 @@ namespace order_management_system
             DisplayProducts(products);
 
             Order order = new Order();
+            bool orderPlaced = false;
 
-            while (true)
+            while (!orderPlaced)
             {
                 Console.Write("Enter Product ID (or 0 to finish): ");
                 if (int.TryParse(Console.ReadLine(), out int productId))
@@ -217,36 +219,82 @@ namespace order_management_system
                         else
                         {
                             Console.WriteLine("Invalid quantity. Please enter a positive integer within the available quantity.");
+
+                            // Log error to a text file
+                            LogError($"Invalid quantity entered for product {selectedProduct.Name} on {DateTime.Now.ToString("yyyy-MM-dd")}");
                         }
                     }
                     else
                     {
                         Console.WriteLine("Invalid product ID. Please enter a valid ID.");
+
+                        // Log error to a text file
+                        LogError($"Invalid product ID entered on {DateTime.Now.ToString("yyyy-MM-dd")}");
                     }
                 }
                 else
                 {
                     Console.WriteLine("Invalid input. Please enter a valid number.");
+
+                    // Log error to a text file
+                    LogError($"Invalid input entered on {DateTime.Now.ToString("yyyy-MM-dd")}");
+                }
+
+                // Check if the order is ready to be placed
+                if (order.OrderItems.Count > 0)
+                {
+                    orderService.PlaceOrder(order);
+                    Console.WriteLine("Order placed successfully!");
+                    orderPlaced = true;
                 }
             }
-
-            orderService.PlaceOrder(order);
-            Console.WriteLine("Order placed successfully!");
         }
+
+        static void LogError(string error)
+        {
+            string logFileName = $"ErrorLog_{DateTime.Now.ToString("yyyy-MM-dd")}.txt";
+            string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            try
+            {
+                string logFilePath = Path.Combine(projectDirectory, logFileName);
+
+                using (StreamWriter sw = File.AppendText(logFilePath))
+                {
+                    sw.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error logging: {ex.Message}");
+            }
+        }
+
+
+
 
         static void ViewOrders(OrderService orderService)
         {
             List<Order> orders = orderService.GetOrders();
             Console.WriteLine("Orders:");
+            Console.WriteLine(new string('-', 80));
+            Console.WriteLine("| {0, -10} | {1, -20} | {2, -20} | {3, -15} |", "Order ID", "Order Date", "Estimated Delivery", "Total Amount");
+            Console.WriteLine(new string('-', 80));
 
             foreach (var order in orders)
             {
-                Console.WriteLine($"Order ID: {order.OrderId}, Total Amount: {order.TotalAmount:C}");
-                Console.WriteLine(new string('-', 30));
+                Console.WriteLine("| {0, -10} | {1, -20} | {2, -20} | {3, -15} |", order.OrderId, order.OrderDate.ToString("yyyy-MM-dd HH:mm:ss"), order.DeliveryDate.ToString("yyyy-MM-dd"), order.TotalAmount.ToString("C"));
+
+                Console.WriteLine(new string('-', 80));
+                Console.WriteLine("| {0, -30} | {1, -10} | {2, -20} |", "Product", "Quantity", "Subtotal");
+                Console.WriteLine(new string('-', 80));
+
                 DisplayOrderItems(order.OrderItems);
 
+                Console.WriteLine(new string('-', 80));
             }
         }
+
 
         static void DisplayProducts(List<Product> products)
         {
@@ -260,7 +308,8 @@ namespace order_management_system
         {
             foreach (var item in orderItems)
             {
-                Console.WriteLine($"   {item.Product.Name} x {item.Quantity} - {item.Product.Price * item.Quantity:C}");
+                Console.WriteLine("| {0, -30} | {1, -10} | {2, -20} |", item.Product.Name, item.Quantity, (item.Product.Price * item.Quantity).ToString("C"));
+                Console.WriteLine(new string('-', 80));
             }
         }
     }
